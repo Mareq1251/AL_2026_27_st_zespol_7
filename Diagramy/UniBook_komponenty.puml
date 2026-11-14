@@ -1,0 +1,48 @@
+@startuml
+top to bottom direction
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+title UniBook — diagram komponentów
+
+package "Aplikacje klienckie" {
+  component "Aplikacja webowa" as Web
+  component "Aplikacja desktopowa" as Desktop
+}
+
+package "Backend — Django + Django REST Framework" {
+  component "REST API" as API
+  component "Konta i uprawnienia" as Auth
+  component "Katalog zasobów" as Resources
+  component "Rezerwacje i decyzje" as Reservations
+  component "Wydania i zwroty" as Loans
+  component "Historia operacji" as History
+  component "Warstwa dostępu do danych\nDjango ORM" as ORM
+}
+
+database "PostgreSQL" as DB
+
+Web --> API : HTTPS / JSON
+Desktop --> API : HTTPS / JSON
+
+API --> Auth
+API --> Resources
+API --> Reservations
+API --> Loans
+API --> History
+
+Auth --> ORM
+Resources --> ORM
+Reservations --> ORM
+Loans --> ORM
+History --> ORM
+
+ORM --> DB : SQL / transakcje
+
+note bottom of DB
+  Dane użytkowników, zasobów,
+  rezerwacji, wypożyczeń i historii.
+  Ograniczenia integralności,
+  w tym ochrona przed kolizjami.
+end note
+@enduml

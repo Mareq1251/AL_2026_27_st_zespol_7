@@ -1,0 +1,8 @@
+<h1>Katalog zasobów UniBook</h1>
+<ul>
+  {% for zasob in zasoby %}
+    <li>{{ zasob.nazwa }} — {{ zasob.get_typ_display }} — {{ zasob.lokalizacja }}</li>
+  {% empty %}
+    <li>Brak aktywnych zasobów.</li>
+  {% endfor %}
+</ul>
