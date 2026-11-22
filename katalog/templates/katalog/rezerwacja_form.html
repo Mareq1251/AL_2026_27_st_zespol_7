@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Rezerwacja UniBook</title>
+</head>
+<body>
+  <h1>Rezerwacja zasobu {{ zasob.nazwa }}</h1>
+  <p>Lokalizacja — {{ zasob.lokalizacja }}</p>
+  <p>Podaj godziny w strefie Europe/Warsaw.</p>
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Zarezerwuj</button>
+  </form>
+
+  <p><a href="{% url 'lista_zasobow' %}">Wróć do katalogu</a></p>
+</body>
+</html>
