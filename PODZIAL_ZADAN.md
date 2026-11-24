@@ -1,4 +1,4 @@
-# UniBook — podział zadań i pakiet kontekstu
+# UniBook — podział zadań zespołu
 
 Stan na 24 listopada 2026. Dokument rozdziela wykonane prace od dalszych obowiązków. Lista jest planem realizacji, a nie potwierdzeniem ukończenia nowych modułów.
 
@@ -8,29 +8,21 @@ Stan na 24 listopada 2026. Dokument rozdziela wykonane prace od dalszych obowią
 - **Marcin Pupek:** diagramy i model danych, Docker, PostgreSQL i Django, logowanie, katalog, rezerwacje, własne zgłoszenia, ochrona przed kolizjami, wykonane sprawdzenia, aktualizacja README i dokumentacji oraz repozytorium.
 - Potwierdzono próbę dwóch równoczesnych zapisów. Podczas kolejnej próby wykryto zakleszczenie. Ponawianie dodano do skryptu testowego; obsługa w aplikacji pozostaje zadaniem Pauli we współpracy z API.
 
-## Materiały dla zespołu i modeli językowych
+## Materiały projektowe
 
-| Materiał | Odnośnik do pliku w pakiecie | Dysk Google |
+| Materiał | Plik | Dysk Google |
 |---|---|---|
-| Pełny kontekst, aktualny stan i wymagania | [Kontekst całego projektu](kontekst/00_UNIBOOK_KONTEKST_I_WYMAGANIA.txt) | Do uzupełnienia po przesłaniu |
-| Paula Brajczewska — aplikacja webowa i decyzje administratora | [Samodzielny pakiet TXT](kontekst/01_PAULA_WEB.txt) | Do uzupełnienia po przesłaniu |
-| Mateusz Perkowski — wydania, zwroty i historia operacji | [Samodzielny pakiet TXT](kontekst/02_MATEUSZ_PERKOWSKI_WYPOZYCZENIA.txt) | Do uzupełnienia po przesłaniu |
-| Mateusz Drewnowski — api, uwierzytelnianie i kontrola dostępu | [Samodzielny pakiet TXT](kontekst/03_MATEUSZ_DREWNOWSKI_API.txt) | Do uzupełnienia po przesłaniu |
-| Mikołaj Malinowski — aplikacja desktopowa pyqt | [Samodzielny pakiet TXT](kontekst/04_MIKOLAJ_DESKTOP.txt) | Do uzupełnienia po przesłaniu |
+| Opis projektu, aktualny stan i wymagania | [Opis całego projektu](kontekst/00_UNIBOOK_KONTEKST_I_WYMAGANIA.txt) | Do uzupełnienia po przesłaniu |
+| Paula Brajczewska — aplikacja webowa i decyzje administratora | [Opis modułu i wymagania](kontekst/01_PAULA_WEB.txt) | Do uzupełnienia po przesłaniu |
+| Mateusz Perkowski — wydania, zwroty i historia operacji | [Opis modułu i wymagania](kontekst/02_MATEUSZ_PERKOWSKI_WYPOZYCZENIA.txt) | Do uzupełnienia po przesłaniu |
+| Mateusz Drewnowski — API, uwierzytelnianie i kontrola dostępu | [Opis modułu i wymagania](kontekst/03_MATEUSZ_DREWNOWSKI_API.txt) | Do uzupełnienia po przesłaniu |
+| Mikołaj Malinowski — aplikacja desktopowa PyQt | [Opis modułu i wymagania](kontekst/04_MIKOLAJ_DESKTOP.txt) | Do uzupełnienia po przesłaniu |
 
 [Repozytorium projektu](https://github.com/Mareq1251/AL_2026_27_st_zespol_7)
 
-Każdy indywidualny TXT zawiera zadania danej osoby, kontekst całego projektu i tekst pełnego konspektu. Wystarczy przekazać modelowi **swój TXT oraz aktualny kod potrzebnych plików**. Nie trzeba dołączać pozostałych czterech TXT. Diagramy należy dodatkowo załączyć w PDF, jeżeli praca wymaga oceny ich oznaczeń.
+Materiały zawierają opis systemu, wymagania, dotychczasowy stan prac oraz szczegółowy zakres poszczególnych modułów. Diagramy są dostępne w konspekcie projektu.
 
-### Umieszczenie na Dysku Google
-
-1. Przesłać pięć plików TXT z katalogu `kontekst` na Dysk Google.
-2. Udostępnić je członkom zespołu i sprawdzić dostęp z ich kont.
-3. Skopiować odnośnik do każdego pliku i w odpowiedniej komórce ostatniej kolumny zastąpić tekst przez `[Otwórz TXT](ADRES_SKOPIOWANY_Z_DYSKU)`.
-4. Zachować działające odnośniki względne jako kopię do pobrania z repozytorium, jeżeli TXT będą również w GitHubie. Przy publikacji samego MD korzystać z uzupełnionej kolumny Google.
-5. Modelowi najlepiej załączyć pobrany TXT. Sam link Google może wymagać logowania lub nie być odczytywalny przez model. Nie trzeba z tego powodu upubliczniać całego folderu.
-
-Adresy Google nie zostały jeszcze podane i nie są wymyślone. Pliki to migawka z 24.11; późniejsze zmiany kodu i kontraktów trzeba aktualizować także w kontekście. Sekrety `.env`, hasła i tokeny nie należą do pakietu.
+Po umieszczeniu dokumentów na Dysku Google należy uzupełnić ostatnią kolumnę tabeli odnośnikami i udostępnić pliki członkom zespołu. Odnośniki do kopii w repozytorium pozostają dostępne w kolumnie Plik.
 
 ## Zasady realizacji
 
@@ -78,7 +70,7 @@ Adresy Google nie zostały jeszcze podane i nie są wymyślone. Pliki to migawka
 
 - [ ] **PAU-10 Wynik do przekazania** — Działające ekrany i decyzje, zmiany modeli uzgodnione z zespołem, migracje, testy i krótki opis webu. Podać jak uruchomić testy i jakie konta/rzeczywiste role przygotować. Przekazać API wspólną logikę tworzenia, edycji i decyzji, zamiast kopiować ją do endpointów.
 
-Pełny kontekst do załączenia modelowi: [TXT dla Paula Brajczewska](kontekst/01_PAULA_WEB.txt).
+Materiały uzupełniające: [Opis modułu i wymagania](kontekst/01_PAULA_WEB.txt).
 
 ## Mateusz Perkowski — Wydania, zwroty i historia operacji
 
@@ -108,7 +100,7 @@ Pełny kontekst do załączenia modelowi: [TXT dla Paula Brajczewska](kontekst/0
 
 - [ ] **MP-10 Wynik do przekazania** — Modele, migracje, wspólne funkcje operacji i historii, testy, dokumentacja reguł i lista wyjątków dla API. Interfejs graficzny desktopu nie należy do tego zakresu; przygotować dane potrzebne Mikołajowi przez Mateusza Drewnowskiego.
 
-Pełny kontekst do załączenia modelowi: [TXT dla Mateusz Perkowski](kontekst/02_MATEUSZ_PERKOWSKI_WYPOZYCZENIA.txt).
+Materiały uzupełniające: [Opis modułu i wymagania](kontekst/02_MATEUSZ_PERKOWSKI_WYPOZYCZENIA.txt).
 
 ## Mateusz Drewnowski — API, uwierzytelnianie i kontrola dostępu
 
@@ -138,7 +130,7 @@ Pełny kontekst do załączenia modelowi: [TXT dla Mateusz Perkowski](kontekst/0
 
 - [ ] **MD-10 Wynik do przekazania** — Endpointy i konfiguracja, testy, specyfikacja API, przykłady wywołań i instrukcja przygotowania kont/rol. Nie umieszczać prawdziwych tokenów w dokumentacji. Przekazać Mikołajowi bazowy adres i zatwierdzony kontrakt, a nie wymóg znajomości tabel PostgreSQL.
 
-Pełny kontekst do załączenia modelowi: [TXT dla Mateusz Drewnowski](kontekst/03_MATEUSZ_DREWNOWSKI_API.txt).
+Materiały uzupełniające: [Opis modułu i wymagania](kontekst/03_MATEUSZ_DREWNOWSKI_API.txt).
 
 ## Mikołaj Malinowski — Aplikacja desktopowa PyQt
 
@@ -168,7 +160,7 @@ Pełny kontekst do załączenia modelowi: [TXT dla Mateusz Drewnowski](kontekst/
 
 - [ ] **MM-10 Wynik do przekazania** — Kod desktopu, plik zależności lub uzgodniona sekcja zależności, instrukcja uruchomienia na Windows, konfiguracja API, testy i zrzuty rzeczywistego działania do dokumentacji. Umożliwić przejście zatwierdzona rezerwacja–wydanie–zwrot–historia. Nie tworzyć lokalnej kopii bazy jako źródła prawdy.
 
-Pełny kontekst do załączenia modelowi: [TXT dla Mikołaj Malinowski](kontekst/04_MIKOLAJ_DESKTOP.txt).
+Materiały uzupełniające: [Opis modułu i wymagania](kontekst/04_MIKOLAJ_DESKTOP.txt).
 
 ## Ustalenia wspólne przed kodowaniem
 
@@ -208,6 +200,6 @@ Nie ustalono jeszcze dokładnych endpointów, mechanizmu poświadczeń API ani s
 - [ ] Sprawdzono błędy sieci, wygaśnięcie logowania i równoczesne operacje na PostgreSQL.
 - [ ] Przeprowadzono czyste uruchomienie bez prywatnych plików i sekretów autora.
 
-## Aktualizowanie pakietu
+## Aktualizacja materiałów
 
 Po zmianie kontraktu lub modeli dopisać datę, autora i opis ustalenia do wspólnego rejestru w repozytorium, a następnie uaktualnić odpowiednie TXT. Statusy odhaczać dopiero po weryfikacji. Historia zmian Git pozostaje dowodem kodu; ta lista opisuje obowiązki.
