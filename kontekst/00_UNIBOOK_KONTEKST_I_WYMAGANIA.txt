@@ -1,0 +1,1501 @@
+UNIBOOK — KONTEKST PROJEKTU I WYMAGANIA DLA MODELU JĘZYKOWEGO
+Stan informacji: 24 listopada 2026
+
+1. CEL I SPOSÓB UŻYCIA
+System UniBook służy do rezerwacji sal i sprzętu na uczelni. Student i pracownik rezerwują zasoby, administrator zarządza danymi i decyzjami, obsługa wydaje i przyjmuje sprzęt. Jest to projekt zespołowy pięciu osób.
+Ten plik opisuje cały projekt. Nie jest kopią kodu repozytorium. Fakty o aktualnej implementacji pochodzą z przebiegu prac i potwierdzeń autora, a wymagania z konspektu. Przed zmianami należy odczytać aktualne pliki kodu. Nie wolno wymyślać zawartości nieudostępnionych plików.
+Na końcu znajduje się tekst pełnego konspektu. Diagramy PDF są graficzne; poniższy opis danych i relacji uzupełnia ich ekstrakcję. Sam tekst nie odtwarza wszystkich oznaczeń graficznych. Do szczegółowej korekty diagramu należy dołączyć PDF lub projekt Data Modelera.
+
+2. ZESPÓŁ I ODPOWIEDZIALNOŚĆ
+Konspekt, wymagania i ogólna koncepcja: cały zespół.
+Marcin Pupek: prace już wykonane — diagramy i model danych, Docker, PostgreSQL, Django, logowanie, katalog, formularz rezerwacji, własne rezerwacje, ochrona przed kolizjami, wykonane sprawdzenia, README i dokumentacja, repozytorium.
+Paula Brajczewska: dalsza rozbudowa webu i decyzji administratora, poprawki zapisu.
+Mateusz Perkowski: logika wydań, zwrotów i historii.
+Mateusz Drewnowski: API, uwierzytelnianie i wspólna kontrola ról.
+Mikołaj Malinowski: aplikacja desktopowa PyQt i integracja z API.
+Każdy przygotowuje testy i dokumentację własnej części. Nie przypisywać planowanych funkcji jako wykonanych. Starszą tabelę podziału zastępuje niniejszy przydział.
+
+3. REPOZYTORIUM I ZNANE PLIKI
+Repozytorium: https://github.com/Mareq1251/AL_2026_27_st_zespol_7
+Gałąź wspólna: main. Ostatni potwierdzony w rozmowie push zakończył się sukcesem, commit 590fe58. To punkt historyczny, nie zapewnienie o aktualnym HEAD.
+Znane ścieżki istniejącej aplikacji:
+- manage.py
+- requirements.txt
+- Dockerfile
+- compose.yaml
+- config/settings.py
+- config/urls.py
+- katalog/models.py
+- katalog/forms.py
+- katalog/views.py
+- katalog/admin.py — sprawdzić bieżącą zawartość
+- katalog/templates/katalog/zasoby.html
+- katalog/templates/katalog/rezerwacja_form.html
+- katalog/templates/katalog/moje_rezerwacje.html
+- katalog/templates/registration/login.html
+- katalog/migrations/0001_initial.py — potwierdzić nazwę w repozytorium
+- katalog/migrations/0002_alter_zasob_options_rezerwacja.py
+- README.md
+- UniBook_konspekt_z_diagramami.pdf
+- UniBook_dokumentacja_projektu.docx
+Nowe ścieżki, nazwy serwisów i adresy API ustala zespół. Przykłady w zadaniach nie oznaczają, że te pliki już istnieją.
+
+4. POTWIERDZONY STAN DZIAŁANIA
+Backend Django, baza PostgreSQL, kontenery web i db uruchamiane Docker Compose. W dotychczasowym środowisku Python 3.12, Django 5.2, PostgreSQL 16; dokładne wersje zależności należy odczytać z aktualnych plików.
+Działają: logowanie Django, panel administratora, dodawanie zasobów, katalog /zasoby/, formularz /zasoby/<id>/rezerwuj/, lista /moje-rezerwacje/ filtrowana według request.user. Logowanie pod /accounts/login/. Sesje Django; prezentacja godzin Europe/Warsaw, obsługa stref czasowych włączona.
+Formularz przyjmuje początek, koniec i cel. Widok sam przypisuje użytkownika i zasób. Nowa rezerwacja ma status OCZEKUJACA. Zapis jest transakcyjny. Formularz sprawdza kolizje, a baza ma niezależne ograniczenie. W widoku obsługiwano IntegrityError dla konkretnego ograniczenia.
+Przykładowe zasoby: Projektor P01 i Sala 101. Konto demonstracyjne student_demo. Haseł i sekretów nie umieszczać w pakiecie ani repozytorium.
+Aktualny web korzysta z szablonów, widoków i formularzy Django. Wspólne REST API i PyQt są dalszym etapem. Konspekt opisuje architekturę docelową. Nie usuwać działającego webu, nie zastępować projektu nową aplikacją.
+Nie potwierdzono jeszcze wykonania: rejestracji publicznej, pełnych ról, filtrów i widoku dostępności, edycji/anulowania, decyzji administratora, wydań/zwrotów, historii, API i desktopu. Sprawdzić aktualne repozytorium przed uznaniem tych braków za nadal aktualne.
+
+5. OBECNE MODELE I MODEL DOCELOWY
+Zasob: nazwa, typ SALA lub SPRZET, lokalizacja, opis, aktywny. Nazwa etykiety Sprzęt wymaga poprawnego UTF-8, wcześniej wystąpiły błędnie zakodowane znaki.
+Rezerwacja: uzytkownik, zasob, poczatek, koniec, cel, status, utworzono. Istnieją odwołania do konta Django i zasobu. Znane statusy: OCZEKUJACA, ZATWIERDZONA, ODRZUCONA, ANULOWANA. Dokładne nazwy i typy odczytać z kodu.
+Model docelowy z diagramu obejmuje siedem encji:
+- Użytkownik: identyfikator, e-mail, skrót hasła, imię, nazwisko, rola, aktywność. W implementacji korzystać z Django AUTH_USER_MODEL, nie przechowywać własnych jawnych haseł i nie wymieniać pochopnie istniejącego modelu użytkownika po migracjach.
+- Zasób: wspólne dane sal i sprzętu.
+- Sala: numer, pojemność, wyposażenie, powiązanie z zasobem.
+- Egzemplarz sprzętu: numer inwentarzowy unikalny, model, stan techniczny, powiązanie z zasobem.
+- Rezerwacja: autor, zasób, termin, cel, status, utworzenie, decydent, data decyzji, uzasadnienie odrzucenia.
+- Wypożyczenie: rezerwacja sprzętu, czas wydania i zwrotu, osoby obsługujące i uwagi.
+- Zdarzenie historii: rodzaj operacji, czas, opis, wykonawca i właściwe obiekty.
+Każda rezerwacja ma jednego autora i jeden zasób. Użytkownik i zasób mogą mieć wiele rezerwacji. Decydent jest opcjonalny przed decyzją. Rezerwacja może stanowić podstawę najwyżej jednego wypożyczenia. Sala i egzemplarz sprzętu to szczegóły zasobu, docelowo rozłączne według typu. Osoby wydająca i przyjmująca są rolami relacji do użytkownika. Historia może wskazywać różne obiekty; nie może powstać zdarzenie bez przedmiotu zmiany.
+Diagram projektowy nie jest dowodem, że wszystkie te tabele już istnieją. Struktura szczegółów Sala/Egzemplarz i sposób migracji istniejących zasobów wymagają wspólnego uzgodnienia przed kodowaniem modułów. Dla obecnych sal i projektora przygotować zachowującą dane migrację lub jawny etap uzupełnienia danych.
+
+6. REGUŁY FUNKCJONALNE — CAŁY ZAKRES
+F01 rejestracja, logowanie, wylogowanie.
+F02 role i blokowanie kont przez administratora.
+F03 dodawanie, edytowanie i dezaktywowanie zasobów.
+F04 katalog i filtry typu, lokalizacji i parametrów.
+F05 dostępność w wybranym przedziale.
+F06 rezerwacja zasobu, terminu i celu.
+F07 ochrona przed kolizjami.
+F08 edycja i anulowanie własnych rezerwacji przed rozpoczęciem, w dozwolonych statusach.
+F09 zatwierdzanie i odrzucanie przez administratora.
+F10 uzasadnienie odrzucenia.
+F11 własne rezerwacje i historia.
+F12 wydanie konkretnego egzemplarza sprzętu.
+F13 zwrot z datą i uwagami.
+F14 historia wydań i informacje o niezwróconym sprzęcie.
+Pełny zakres i kryteria jakości podano również w załączonym tekście konspektu. Nie ograniczać prac wyłącznie do demonstracji jednego poprawnego przebiegu.
+
+7. REGUŁY BIZNESOWE I BEZPIECZEŃSTWO
+Początek < koniec. Nowa rezerwacja nie zaczyna się w przeszłości. Zasób musi być aktywny.
+Terminy blokują statusy OCZEKUJACA i ZATWIERDZONA. ODRZUCONA i ANULOWANA zwalniają termin. Przedziały mają postać [początek, koniec): 10–11 i 11–12 nie kolidują. Różne zasoby mogą mieć ten sam termin.
+Zmiana zasobu lub terminu zatwierdzonego zgłoszenia wymaga ponownego zatwierdzenia. Błędna edycja nie może niszczyć wcześniejszych danych.
+Odrzucenie wymaga uzasadnienia. Czas i wykonawcę decyzji ustala serwer.
+Wydać można wyłącznie sprzęt na podstawie zatwierdzonej rezerwacji, w uzgodnionym czasie odbioru, przy braku otwartego wypożyczenia. Rezerwacja sali nie pozwala wydać sprzętu. Nie wolno wydać innego egzemplarza niż objęty rezerwacją bez uzgodnionej reguły zmiany.
+Najwyżej jedno wypożyczenie na rezerwację i jedno otwarte wypożyczenie egzemplarza. Zwrot zapisuje rzeczywisty czas i osobę przyjmującą; powtórzenie zwrotu nie tworzy drugiego zdarzenia.
+Koniec rezerwacji nie oznacza zwrotu sprzętu. Zaległy zwrot blokuje kolejne fizyczne wydanie, nawet gdy istnieje następna zatwierdzona rezerwacja.
+Dezaktywacja zasobu zachowuje historię; administrator musi widzieć przyszłe rezerwacje wymagające rozstrzygnięcia. Usuwanie obiektów nie może usuwać historii przez przypadkowe kaskady.
+Role: student, pracownik, administrator, obsługa. Publiczna rejestracja nie nadaje uprawnień uprzywilejowanych. Nie zakładać, że is_staff samo oznacza rolę biznesową administratora. Wspólny mechanizm ról uzgodnić i wdrożyć bez dublowania przez klientów.
+Backend sprawdza uprawnienia, własność danych i aktualny stan obiektu. Ukrycie przycisku nie jest zabezpieczeniem. Nie przyjmować od klienta zaufanych wartości użytkownika, roli, wykonawcy decyzji ani czasu operacji.
+
+8. KOLIZJE, WSPÓŁBIEŻNOŚĆ I ZNANY PROBLEM
+Migracja 0002 włącza btree_gist. W PostgreSQL istnieje ograniczenie wykluczające rezerwacja_bez_kolizji, porównujące zasób i nakładanie zakresów czasu dla statusów blokujących. Zachować je. Walidacja formularza nie zastępuje ograniczenia bazodanowego.
+Potwierdzono ręcznie: zapis, odrzucenie nakładającego terminu, sąsiadujące terminy, różne zasoby, dwie równoczesne próby zapisu. Nie jest to dowód istnienia automatycznego zestawu testów w repozytorium.
+Podczas późniejszego testu dwóch transakcji wystąpił DeadlockDetected, SQLSTATE 40P01. Poprzedni skrypt obsługiwał tylko IntegrityError. W skrypcie testowym dodano ograniczone ponowienie CAŁEJ transakcji po jej wycofaniu. Użytkownik potwierdził wykonanie poprawionego testu. Nie potwierdzono dodania takiej obsługi do widoków aplikacji.
+Należy obsłużyć ten przypadek w aplikacji, bez uznawania dowolnego OperationalError za kolizję. Ponowienia ograniczone, tylko dla rozpoznanych przejściowych błędów, każdorazowo w nowej transakcji. Ponowna próba nie może dublować historii, decyzji ani wypożyczeń. Nie maskować innych błędów jako sukcesu.
+Testy współbieżności wykonywać na PostgreSQL z osobnymi połączeniami i sprawdzeniem końcowego stanu. SQLite nie zastąpi tu sprawdzenia ograniczenia wykluczającego.
+
+9. URUCHOMIENIE I DOSTĘP DO KODU
+Uruchomić Docker Desktop, potem w folderze repozytorium:
+docker compose up -d --build
+docker compose exec web python manage.py migrate
+docker compose exec web python manage.py check
+Panel: http://localhost:8000/admin/
+Katalog: http://localhost:8000/zasoby/
+Nowe środowisko wymaga lokalnego .env i kont. Nazwy zmiennych znane dotychczas: POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD, DJANGO_SECRET_KEY. Szczegóły z README i compose.yaml. .env jest pomijany w Git. Nie udostępniać haseł modelowi. Dane w wolumenie Docker nie są zawartością GitHuba; nowy komputer nie dostaje automatycznie demonstracyjnych rekordów.
+Nie używać usuwania wolumenów, resetu migracji ani kasowania rezerwacji jako sposobu naprawy integracji. Zmiany schematu przez nowe migracje, po uzgodnieniu właściciela.
+Repozytorium może być niedostępne modelowi przez sam link. Wtedy użytkownik załącza aktualny kod odpowiednich plików lub archiwum repozytorium bez .env, tokenów, lokalnych baz i danych osobowych. Model nie powinien prosić o hasła.
+
+10. WSPÓŁPRACA I KOLEJNOŚĆ
+Przed równoległą implementacją uzgodnić: role i sposób uwierzytelniania API; rozszerzenia modeli; statusy i przejścia; format dat; adresy i format błędów API; regułę czasu odbioru sprzętu. Nie zmieniać uzgodnionego kontraktu bez poinformowania zależnych osób.
+Paula odpowiada za decyzje i edycję/anulowanie rezerwacji. Mateusz Perkowski za wypożyczenia i historię, w tym wspólną funkcję dopisywania zdarzeń. Mateusz Drewnowski za kontrakt API i uprawnienia. Mikołaj za desktop. Wszystkie interfejsy korzystają z tej samej logiki biznesowej, zamiast kopiować reguły do każdego widoku i klienta.
+Wspólne pliki wymagające koordynacji: katalog/models.py, katalog/views.py, katalog/forms.py, config/urls.py, config/settings.py, requirements.txt i katalog/migrations/. Nie edytować równolegle migracji 0002. Nowe migracje uzgadniać; nie nadpisywać cudzych migracji.
+Proponowane gałęzie: feature/web-decyzje, feature/wypozyczenia-historia, feature/api, feature/desktop. Są propozycją organizacyjną, nie potwierdzonymi gałęziami zdalnymi. Praca na aktualnym main, małe commity, przegląd przed scaleniem. Nie nadpisywać wspólnej gałęzi force pushem.
+
+11. HARMONOGRAM
+25.11.2026 — pokaz już wykonanych rezerwacji; nie przypisywać nowych modułów jako gotowych.
+02.12.2026 — praca własna, planowany etap integracji decyzji, wydań, zwrotów i klientów.
+09.12.2026 — plan pokazu: rezerwacja w webie, zatwierdzenie, wydanie i zwrot w desktopie.
+16.12.2026 — dokończenie obowiązkowego zakresu i poprawki integracyjne.
+13.01.2027 — dokumentacja, instrukcje i wyniki testów.
+20.01.2027 — czyste uruchomienie, próba prezentacji i poprawki.
+27.01.2027 — gotowy projekt, prezentacja i obrona.
+Szczegółowe terminy zadań są planem zespołu, a nie dodatkowymi terminami prowadzącego.
+
+12. INSTRUKCJA DLA MODELU JĘZYKOWEGO
+Najpierw odróżnij stan istniejący od wymagań docelowych. Przeczytaj zadania przypisanej osoby. Poproś o konkretne brakujące pliki kodu, jeśli nie są dołączone. Przedstaw krótki plan małych zmian i zależności, potem pomagaj wdrażać je na obecnym projekcie.
+Nie twórz nowego projektu od zera, nowej bazy zamiast PostgreSQL, oddzielnego backendu dla desktopu ani drugiego systemu ról. Nie wymieniaj modelu użytkownika po migracjach bez uzgodnionego planu.
+Nazwy nowych plików i API traktuj jako propozycję do uzgodnienia, dopóki kod nie potwierdzi ich istnienia. Nie deklaruj uruchomienia testów bez ich wykonania. Oddziel wynik zweryfikowany od sugestii.
+Dla zmian podawaj ścieżki, kompletne potrzebne fragmenty, komendy uruchomienia i sposób sprawdzenia. Uwzględnij typowe błędy użytkownika początkującego w PowerShellu. Polecenia PowerShella i kod do Django shell podawaj oddzielnie.
+Dbaj o UTF-8 i poprawne polskie etykiety. Stosuj prosty język i formę bezosobową w dokumentacji. Bez zbędnych dopowiedzeń w nawiasach. Aktualizuj dokumentację tylko dla faktycznie wykonanych prac.
+Nie uznawaj każdego obecnego w konspekcie testu lub tabeli za dowód wykonania. Kryteria wydajności w konspekcie są celami, dopóki nie ma pomiaru.
+
+13. DECYZJE WYMAGAJĄCE UZGODNIENIA
+- Wariant i wersja PyQt, biblioteka HTTP, sposób pakowania desktopu.
+- Schemat uwierzytelniania API oraz sposób przechowywania i unieważniania poświadczeń klienta.
+- Reprezentacja ról na istniejących kontach Django.
+- Dokładne endpointy, paginacja, statusy odpowiedzi i format błędów.
+- Granice dopuszczalnego czasu odbioru i zachowanie po nieodebraniu sprzętu.
+- Model szczegółów sal i egzemplarzy oraz uzupełnienie istniejących danych.
+- Dopuszczalne statusy edycji/anulowania i wpływ istniejącego wypożyczenia na zmianę rezerwacji.
+- Architektura docelowa: konspekt przewiduje wspólne API dla obu klientów, obecny web używa widoków Django. Wspólnie ustalić etap podłączenia webu do API, zachowując działający system i wspólne reguły.
+- Konspekt zawiera zastrzeżenie o potwierdzeniu technologii webowej z prowadzącym. Rozmowa nie potwierdza takiej akceptacji; członkowie zespołu nie powinni samowolnie zmieniać stosu.
+
+
+14. ZAŁĄCZNIK — TEKST KONSPEKTU
+Źródło: UniBook_konspekt_z_diagramami.pdf, aktualizacja podziału prac 24.11.2026.
+To zapis dokumentu źródłowego, łącznie z planami i stanem z 22.11. Rozdziały 1–13 powyżej wyjaśniają nowsze ustalenia. Ekstrakcja tabel i diagramów może nie zachować układu.
+
+=== STRONA 1 ===
+UniBook: system rezerwacji sal i sprzętu na uczelni
+
+Konspekt projektu - wersja rozszerzona
+
+Data konspektu: 21.10.2026
+Aktualizacja: 22.11.2026
+
+Autorzy: Marcin Pupek, Paula Brajczewska, Mateusz Perkowski, Mateusz Drewnowski, Mikołaj Malinowski
+
+Przedmiot: Projekt zespołowy
+Rok akademicki: 2026/27
+
+Spis treści
+
+
+  Rozdział                                                                             Strona
+
+
+  1. Wstęp                                                                             2
+
+
+  2. Analiza istniejących rozwiązań i źródeł                                                   3
+
+
+  3. Wymagania systemowe                                                               4
+
+
+  3.4. Przypadki użycia i powiązanie z wymaganiami                                            6
+
+
+  4. Ocena jakości, priorytetów i ryzyka                                                      8
+
+
+  5. Architektura, technologie i środowisko                                                   9
+
+
+  5.4. Metodyka i podział pracy                                                            12
+
+
+  5.5. Harmonogram                                                                     13
+
+
+  6. Komunikacja między podsystemami                                                     14
+
+
+  7. Projekt struktury bazy danych                                                          15
+
+
+  8. Projekt interfejsu użytkownika                                                          18
+
+
+  9. Algorytmy działania aplikacji                                                           19
+
+
+  10. Implementacja i testowanie                                                           19
+
+
+  11. Źródła                                                                           20
+
+
+
+Spis rysunków
+
+Rys. 1. Diagram przypadków użycia systemu UniBook - s. 7.
+Rys. 2. Diagram komponentów systemu UniBook - s. 9.
+Rys. 3. Model logiczny bazy danych systemu UniBook - s. 16.
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                        1
+=== STRONA 2 ===
+ 1. Wstęp
+
+  1.1. Opis biznesowy i identyfikacja problemu
+
+  Uczelnia dysponuje zasobami wykorzystywanymi podczas zajęć dydaktycznych, projektów studenckich,
+  badań i wydarzeń organizacyjnych. Należą do nich sale wykładowe, pracownie komputerowe,
+  pomieszczenia laboratoryjne oraz sprzęt przenośny, między innymi projektory, laptopy, aparaty i
+  zestawy laboratoryjne.
+
+ W przyjętym scenariuszu rezerwowanie zasobów odbywa się za pomocą wiadomości e-mail, arkuszy,
+  dokumentów papierowych lub ustnych ustaleń. Rozproszenie informacji utrudnia sprawdzanie
+  dostępności i zwiększa ryzyko pomyłek.
+
+  Najważniejsze problemy obejmują:
+
+  • nakładające się rezerwacje tego samego zasobu;
+
+  • brak wspólnego, aktualnego widoku dostępności;
+
+  • konieczność kontaktowania się z administracją w celu sprawdzenia wolnego terminu;
+
+  • trudności w ustaleniu, kto odebrał sprzęt i czy został on zwrócony;
+
+  • brak jednolitej historii decyzji dotyczących rezerwacji;
+
+  • niejasny podział uprawnień i odpowiedzialności.
+
+  UniBook ma uporządkować te procesy poprzez centralny katalog zasobów, rezerwacje terminowe i
+  rejestrowanie fizycznego wydawania oraz zwracania sprzętu.
+
+  1.2. Użytkownicy i role
+
+  System przewiduje cztery role:
+
+
+   Rola               Podstawowe uprawnienia
+
+
+    Student                 Przeglądanie zasobów i dostępności, składanie rezerwacji, edycja i anulowanie własnych
+                              rezerwacji zgodnie z regułami systemu, podgląd własnej historii
+
+
+    Pracownik               Funkcje rezerwacyjne analogiczne do studenta; ewentualne różnice w dostępie do
+                         zasobów wymagają uzgodnienia
+
+
+    Administrator           Zarządzanie kontami i zasobami, blokowanie kont, zatwierdzanie i odrzucanie rezerwacji,
+                          wgląd w historię operacji
+
+
+    Obsługa                Podgląd rezerwacji potrzebnych do wydania sprzętu, rejestrowanie wydań i zwrotów,
+                           zapisywanie uwag o stanie sprzętu
+
+
+  Uprawnienia będą sprawdzane przez backend. Ukrycie przycisku w aplikacji nie będzie traktowane jako
+  zabezpieczenie dostępu do danej operacji.
+
+  1.3. Cel pracy
+
+  Celem projektu jest zaprojektowanie, implementacja i przetestowanie systemu rezerwacji sal i sprzętu,
+  składającego się z:
+
+  • backendu udostępniającego REST API;
+
+  • relacyjnej bazy danych;
+
+  • aplikacji webowej;
+
+  • aplikacji desktopowej;
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                        2
+=== STRONA 3 ===
+  • dokumentacji technicznej i użytkowej.
+
+  Kluczowym wymaganiem jest ochrona przed nakładającymi się rezerwacjami tego samego zasobu,
+  również wtedy, gdy żądania pochodzą jednocześnie z różnych aplikacji.
+
+  Oczekiwanym rezultatem jest działający prototyp umożliwiający przeprowadzenie całego procesu: od
+  wyszukania zasobu, przez zatwierdzenie rezerwacji, po wydanie i zwrot sprzętu.
+
+  1.4. Zakres wersji podstawowej
+
+  Wersja podstawowa obejmie rezerwacje pojedynczych sal oraz konkretnych egzemplarzy sprzętu. Każdy
+  egzemplarz otrzyma własny identyfikator, na przykład numer inwentarzowy.
+
+  Proponowane uproszczenie: jedna rezerwacja dotyczy jednego zasobu. Rezerwacja sali i projektora
+  wymaga złożenia dwóch rezerwacji. Rezerwacje grupowe, cykliczne i automatyczne przydzielanie
+  egzemplarza z puli pozostają poza zakresem pierwszej wersji.
+
+  System nie będzie w pierwszej wersji obsługiwał płatności, kar finansowych ani integracji z uczelnianym
+  systemem logowania.
+
+
+ 2. Analiza istniejących rozwiązań i źródeł
+
+  2.1. Porównanie rozwiązań
+
+  Analiza uwzględnia przeznaczenie narzędzi, obsługę zasobów, zatwierdzanie oraz możliwość
+  dopasowania do procesu uczelni.
+
+
+   Rozwiązanie           Charakterystyka                   Znaczenie dla projektu
+
+
+   Booked Scheduler        System rezerwacji zasobów; obecna      Najbliższy punkt odniesienia. Trzeba odróżnić
+                                oferta obejmuje rozwiązania płatne.      śledzenie wykorzystania rezerwacji od
+                            Producent wskazuje zatwierdzanie       szczegółowego protokołu wydania i zwrotu
+                               rezerwacji i funkcje                    egzemplarza sprzętu.
+                               check-in/check-out. [1][2]
+
+
+   Skedda                System zarządzania przestrzeniami,      Punkt odniesienia dla kalendarza, dostępności
+                               oferujący reguły rezerwacji i                         i procesu podejmowania decyzji.
+                              zatwierdzanie w określonych planach.
+                                  [3]
+
+
+    Microsoft 365 / Outlook    Skrzynki zasobów umożliwiają           Rozwiązanie istotne dla uczelni korzystających
+                           rezerwowanie sal i sprzętu. [4]           z Microsoft 365; wymaga oceny dopasowania
+                                                            do ewidencji fizycznych wydań.
+
+
+    Calendly                 Narzędzie do ustalania terminów          Inspiracja dla prostego wyboru terminu.
+                            spotkań na podstawie dostępności
+                              kalendarzy. [5]
+
+
+    Microsoft Bookings        Narzędzie do umawiania spotkań i       Punkt odniesienia dla formularzy
+                               usług, zintegrowane z kalendarzem      rezerwacyjnych i organizacji terminów.
+                              Outlook. [6]
+
+
+
+  2.2. Wnioski z analizy
+
+  Istniejące produkty realizują znaczną część potrzeb związanych z rezerwacjami. Uzasadnieniem
+  stworzenia UniBook jest możliwość zaprojektowania konkretnego procesu uczelnianego, ograniczenia
+  interfejsu do potrzebnych funkcji oraz połączenia rezerwacji z ewidencją wydań i zwrotów.
+
+  Projekt ma również wartość dydaktyczną: pozwala przećwiczyć projektowanie bazy danych,
+  współbieżność, kontrolę dostępu, tworzenie API i integrację dwóch aplikacji klienckich.
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                        3
+=== STRONA 4 ===
+  2.3. Zakres analizy literatury i dokumentacji
+
+  Przegląd źródeł obejmie:
+
+  • projektowanie relacyjnych baz danych i integralność danych;
+
+  • transakcje oraz obsługę operacji współbieżnych;
+
+  • projektowanie REST API i dokumentowanie interfejsów;
+
+  • uwierzytelnianie i kontrolę uprawnień;
+
+  • projektowanie interfejsów użytkownika;
+
+  • testowanie systemów wielowarstwowych.
+
+  Podstawą techniczną będą oficjalne dokumentacje wybranych technologii. W dokumentacji końcowej
+  każde źródło internetowe powinno mieć tytuł, adres oraz datę dostępu.
+
+
+ 3. Wymagania systemowe
+
+  3.1. Wymagania funkcjonalne
+
+
+    Identyfikato   Wymaganie
+    r
+
+
+   F01              Rejestracja, logowanie i wylogowanie użytkownika
+
+
+   F02             Przypisywanie ról oraz blokowanie kont przez administratora
+
+
+   F03            Dodawanie, edytowanie i dezaktywowanie zasobów
+
+
+   F04             Przeglądanie zasobów oraz filtrowanie według typu, lokalizacji i parametrów
+
+
+   F05            Sprawdzanie dostępności zasobu w wybranym przedziale czasu
+
+
+   F06             Składanie rezerwacji z określeniem zasobu, terminu i celu wykorzystania
+
+
+   F07           Ochrona przed kolizjami terminów
+
+
+   F08             Edycja i anulowanie własnych rezerwacji przed ich rozpoczęciem, zgodnie z dopuszczalnymi
+                    statusami
+
+
+   F09             Zatwierdzanie i odrzucanie rezerwacji przez administratora
+
+
+   F10           Podawanie uzasadnienia odrzucenia rezerwacji
+
+
+   F11             Przeglądanie własnych rezerwacji i ich historii
+
+
+   F12             Rejestrowanie wydania konkretnego egzemplarza sprzętu
+
+
+   F13             Rejestrowanie zwrotu wraz z datą i uwagami
+
+
+   F14            Udostępnienie obsłudze historii wydań i informacji o niezwróconym sprzęcie
+
+
+  Użytkownik rejestrujący konto nie może samodzielnie nadać sobie roli administratora, obsługi ani
+  pracownika. Sposób potwierdzania przynależności do uczelni należy ustalić przed wdrożeniem poza
+  środowiskiem demonstracyjnym.
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                        4
+=== STRONA 5 ===
+  3.2. Wymagania niefunkcjonalne
+
+
+   Obszar             Wymaganie i sposób weryfikacji
+
+
+    Bezpieczeństwo          Kontrola ról i własności danych po stronie API; testy prób dostępu do cudzych rezerwacji
+
+
+    Integralność             Ograniczenie bazodanowe uniemożliwiające zapis kolidujących rezerwacji
+
+
+    Niezawodność           Transakcyjne wykonywanie operacji zmieniających stan rezerwacji i wypożyczenia
+
+
+    Użyteczność             Czytelne statusy, komunikaty błędów i dostępność podstawowych operacji z poziomu listy
+                              rezerwacji
+
+
+    Wydajność             Proponowany cel: 95% odczytów listy zasobów i dostępności poniżej 2 sekund przy 20
+                          równoczesnych użytkownikach, 500 zasobach i 10 000 rezerwacji w opisanym środowisku
+                         testowym
+
+
+    Dokumentacja           Specyfikacja OpenAPI, instrukcja uruchomienia oraz opis modelu danych
+
+
+    Uruchamianie           Backend, baza i aplikacja webowa uruchamiane przez Docker Compose; klient desktopowy
+                          uruchamiany osobno
+
+
+    Obsługa czasu           Przetwarzanie terminów z uwzględnieniem stref, zapis w UTC i prezentacja w strefie
+                              uczelni
+
+
+    Utrzymanie               Podział kodu na moduły, kontrola wersji i testy automatyczne
+
+
+  Parametry wydajności są proponowanym kryterium odbioru, a nie deklaracją już osiągniętych wyników.
+
+  3.3. Reguły biznesowe
+
+  Proponuje się przyjęcie następujących zasad:
+
+  1. Początek rezerwacji musi poprzedzać jej koniec.
+
+  2. Nowej rezerwacji nie można utworzyć z terminem rozpoczęcia w przeszłości.
+
+  3. Rezerwacje oczekujące i zatwierdzone blokują termin.
+
+  4. Odrzucenie lub anulowanie zwalnia termin.
+
+  5. Rezerwacje następujące bezpośrednio po sobie są dozwolone, np. 10:00-11:00 i 11:00-12:00.
+
+  6. Zmiana terminu lub zasobu w zatwierdzonej rezerwacji powoduje ponowne skierowanie jej do
+  zatwierdzenia.
+
+  7. Nieudana edycja, np. z powodu kolizji, pozostawia wcześniejszą rezerwację bez zmian.
+
+  8. Sprzęt można wydać wyłącznie na podstawie zatwierdzonej rezerwacji, w dopuszczonym czasie
+  odbioru.
+
+  9. Ten sam egzemplarz nie może mieć dwóch jednocześnie otwartych wypożyczeń.
+
+  10. Dezaktywacja zasobu nie usuwa historii. Administrator otrzymuje informację o przyszłych
+  rezerwacjach wymagających rozstrzygnięcia.
+
+  11. Opóźniony zwrot nie zmienia automatycznie kolejnych rezerwacji, ale blokuje ponowne fizyczne
+  wydanie tego egzemplarza do chwili zwrotu.
+
+  Zasada blokowania terminu przez rezerwacje oczekujące wymaga sprawnej obsługi administratora. W
+  pierwszej wersji administrator będzie ręcznie rozstrzygał takie zgłoszenia.
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                        5
+=== STRONA 6 ===
+3.4. Przypadki użycia i powiązanie z wymaganiami
+
+
+Diagram na rys. 1 przedstawia zakres funkcji dostępnych dla aktorów systemu. Gość może
+zarejestrować konto. Aktor ogólny „Użytkownik” grupuje logowanie i wylogowanie. Administrator,
+Obsługa oraz Użytkownik rezerwujący dziedziczą te funkcje. Student i Pracownik są specjalizacjami
+Użytkownika rezerwującego; dziedziczenie upraszcza diagram i nie wprowadza dodatkowych ról
+przechowywanych w bazie.
+
+Student i pracownik wyszukują zasoby, sprawdzają dostępność i zarządzają własnymi rezerwacjami.
+Administrator zarządza kontami i zasobami, rozpatruje rezerwacje oraz przegląda historię operacji.
+Obsługa korzysta z zatwierdzonych rezerwacji sprzętu, rejestruje wydania i zwroty oraz kontroluje
+niezwrócone egzemplarze.
+
+
+  Przypadki użycia                                    Powiązanie z wymaganiami
+
+
+  UC01-UC03: rejestracja, logowanie, wylogowanie             F01
+
+
+  UC04-UC06: katalog, dostępność, rezerwacja                  F04-F06; F07 jako reguła zapisu
+
+
+  UC07-UC09: edycja, anulowanie, własna historia               F08, F11; F07 także przy zmianie terminu
+
+
+  UC10-UC11: konta, role i zasoby                            F02-F03
+
+
+  UC12-UC14: decyzje i historia operacji                        F09-F10; historia jako funkcja administracyjna
+
+
+  UC15-UC18: podgląd rezerwacji, wydanie, zwrot, historia       F12-F14; UC15 wspiera wydanie sprzętu
+
+
+
+Interpretacja i warunki wykonania
+
+UC oznacza przypadek użycia (Use Case). Numer identyfikuje funkcję w dokumentacji, a nie kolejność
+jej uruchamiania. Połączenie aktora z przypadkiem użycia oznacza dostęp do danej funkcji. Diagram
+obejmuje cały UniBook, niezależnie od używanego klienta webowego lub desktopowego.
+
+Zalogowanie, aktywne konto i odpowiednie uprawnienia są warunkami wstępnymi operacji chronionych.
+Kontrola kolizji F07 jest obowiązkową regułą tworzenia i edycji rezerwacji. Odrzucenie wymaga
+uzasadnienia, a wydanie sprzętu - zatwierdzonej rezerwacji i braku otwartego wypożyczenia
+egzemplarza. Te zasady doprecyzowują diagram i podlegają kontroli backendu.
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                        6
+=== STRONA 7 ===
+3.4. Diagram przypadków użycia
+
+
+
+                                                           UniBook — system rezerwacji sal i sprzętu
+
+                                                                       UC01
+                                                                                                    Zarejestruj konto
+                                              Gość
+
+                                                                       UC11
+                                                                                         Zarządzaj zasobami
+
+
+                                                                       UC10
+                                                                                     Zarządzaj kontami i rolami
+
+
+
+                                                                       UC13
+                                                                                Odrzuć rezerwację                                     Odrzucenie wymaga uzasadnienia.
+
+
+                                                  Administrator                          UC14
+                                                                                        Przeglądaj historię operacji
+
+
+
+                                                                       UC12
+                                                                                     Zatwierdź rezerwację
+
+
+
+                                                                       UC17
+                                                                                               Zarejestruj zwrot sprzętu
+
+
+
+                                                                       UC16                                                                                                                             Wydanie wymaga zatwierdzonej rezerwacji
+                                                                                             Zarejestruj wydanie sprzętu                                              i braku otwartego wypożyczenia egzemplarza.
+
+
+                                                                       UC15
+                                                                                         Przeglądaj zatwierdzone
+                                                                                          rezerwacje sprzętu
+                                                Obsługa
+
+
+                                                                       UC18
+                                                                                        Przeglądaj historię wydań
+                                                                                                                                           i niezwrócony sprzęt
+
+
+
+                                                                       UC02
+                                                                                            Zaloguj się
+                       Użytkownik
+
+                                                                       UC03
+                                                                                  Wyloguj się
+
+
+                                                                       UC06                                       Rezerwacje oczekujące i zatwierdzone
+                                                                                       Złóż rezerwację                                       blokują termin dla danego zasobu.
+
+
+                                                                       UC05
+                                                                         Sprawdź dostępność zasobu
+
+
+
+                                                                       UC04
+                                                                                         Przeglądaj i filtruj zasoby
+
+
+
+                                                                       UC09
+                                                                                      Przeglądaj własne rezerwacje
+                                                                                                                                                   i ich historię                                            Użytkownik
+                                                 rezerwujący
+
+                                                                       UC08
+                                                                                 Anuluj własną rezerwację
+
+
+
+                                                                       UC07
+                                                                                    Edytuj własną rezerwację
+
+
+
+
+
+                                                                                                Student
+
+
+
+
+
+                                                                                       Pracownik
+
+
+
+
+
+Rys. 1. Diagram przypadków użycia systemu UniBook. Źródło: opracowanie własne zespołu; diagram dostarczony w formacie SVG.
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                                                                           7
+=== STRONA 8 ===
+ 4. Ocena jakości, priorytetów i ryzyka
+
+  4.1. FURPS
+
+
+   Kategoria            Zastosowanie w UniBook
+
+
+    Functionality -           Konta, role, zasoby, rezerwacje, zatwierdzanie, wydania i zwroty
+    funkcjonalność
+
+
+    Usability -               Czytelne formularze, filtry, widok dostępności i komunikaty o kolizjach
+    użyteczność
+
+
+     Reliability -               Integralność bazy, transakcje i poprawna obsługa nieudanych operacji
+    niezawodność
+
+
+    Performance -            Paginacja, indeksy i pomiary czasu odpowiedzi API
+    wydajność
+
+
+    Supportability -         Dokumentacja, testy, modułowy kod i powtarzalne środowisko
+    utrzymywalność
+
+
+
+  4.2. MoSCoW
+
+
+    Priorytet             Zakres
+
+
+    Must have - musi być    Logowanie, role, katalog zasobów, sprawdzanie dostępności, rezerwacje bez kolizji,
+                             zatwierdzanie, anulowanie, wydania i zwroty, podstawowa historia, dwa działające klienty
+
+
+    Should have - powinno   Rozbudowane filtrowanie, graficzny kalendarz, edycja rezerwacji, uwagi o stanie sprzętu
+    być
+
+
+    Could have - może       Eksport historii do CSV, proste statystyki, dodatkowe udogodnienia interfejsu
+    być
+
+
+    Won’t have this time -    Potwierdzanie e-mail, SSO, integracja z planem zajęć, płatności, rezerwacje cykliczne i
+    poza bieżącym          wielozasobowe
+    zakresem
+
+
+  Podstawowa historia i sprawdzanie dostępności należą do zakresu obowiązkowego. Rozbudowany
+  kalendarz jest dodatkową formą prezentacji tych samych danych.
+
+  4.3. SWOT
+
+
+   Obszar               Charakterystyka
+
+
+   Mocne strony          Dopasowany proces, wspólne API, ochrona przed kolizjami w bazie, powiązanie rezerwacji
+                             z wydaniem
+
+
+    Słabe strony            Ograniczony czas, konieczność utrzymania dwóch klientów, brak integracji z tożsamością
+                            uczelnianą
+
+
+    Szanse                    Pilotaż na wybranym wydziale, integracja z planem zajęć, rozwój powiadomień i raportów
+
+
+    Zagrożenia             Opóźnienia integracji, zmiany wymagań, niedoszacowanie obsługi współbieżności i czasu
+
+
+  Ryzyko będzie ograniczane przez wczesne ustalenie API, częste integracje i realizację najpierw jednego
+  kompletnego scenariusza biznesowego.
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                        8
+=== STRONA 9 ===
+5. Architektura, technologie i środowisko
+
+5.1. Architektura i diagram komponentów
+
+System będzie miał architekturę klient-serwer. Aplikacja webowa i desktopowa będą korzystać z tego
+samego REST API. Backend będzie odpowiadał za reguły biznesowe, kontrolę dostępu i transakcje.
+Klienci nie będą łączyć się bezpośrednio z PostgreSQL.
+
+Rysunek 2 pokazuje proponowany podział backendu na moduły jednej aplikacji Django. Konta i
+uprawnienia, katalog zasobów, rezerwacje i decyzje, wydania i zwroty oraz historia operacji mają
+odrębne odpowiedzialności; nie oznacza to wdrożenia osobnych mikroserwisów.
+
+
+
+
+
+                                           UniBook — diagram komponentów
+
+                                            Aplikacje klienckie
+
+                                                   Aplikacja webowa             Aplikacja desktopowa
+
+
+                                                     HTTPS / JSON    HTTPS / JSON
+
+ Backend — Django + Django REST Framework
+
+                                                    REST API
+
+
+
+
+     Konta i uprawnienia             Katalog zasobów            Rezerwacje i decyzje           Wydania i zwroty             Historia operacji
+
+
+
+
+                                                     Warstwa dostępu do danych
+                                                      Django ORM
+
+
+                                                          SQL / transakcje
+
+
+
+                                                               PostgreSQL
+
+
+
+
+                                                     Dane użytkowników, zasobów,
+                                                                     rezerwacji, wypożyczeń i historii.
+                                                               Ograniczenia integralności,
+                                       w tym ochrona przed kolizjami.
+
+
+
+
+
+Rys. 2. Diagram komponentów systemu UniBook. Źródło: opracowanie własne zespołu.
+
+
+Warstwa Django ORM pośredniczy w dostępie do danych i wykonywaniu transakcji SQL. PostgreSQL
+przechowuje dane oraz docelowo wymusza ograniczenia integralności. Strzałki przedstawiają kierunek
+wywołań lub zależności; odpowiedzi wracają do wywołującego.
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                        9
+=== STRONA 10 ===
+5.1. Funkcje komponentów UniBook
+
+
+Rysunek 2 przedstawia aplikacje klienckie, moduły backendu, warstwę dostępu do danych i bazę.
+Poniższa tabela opisuje ich odpowiedzialność.
+
+
+ Komponent                   Struktura i funkcje
+
+
+  Aplikacja webowa                Wyświetla katalog i dostępność, przyjmuje formularze rezerwacji oraz
+                                 pokazuje status i historię zgłoszeń. Wysyła żądania do wspólnego API.
+
+
+  Aplikacja desktopowa            Wyświetla zatwierdzone rezerwacje sprzętu i umożliwia obsłudze zapis
+                                 wydania, zwrotu oraz uwag o stanie egzemplarza.
+
+
+ REST API                        Przyjmuje żądania klientów, waliduje dane i kieruje operacje do modułów
+                                backendu. Zwraca dane albo komunikat o błędzie.
+
+
+  Konta i uprawnienia              Obsługuje konta, logowanie, role i blokady. Sprawdza uprawnienia i właściciela
+                               danych przed wykonaniem operacji.
+
+
+  Katalog zasobów                Zarządza danymi sal i egzemplarzy sprzętu, filtrami katalogu oraz
+                                 dezaktywacją zasobów. Udostępnia dane potrzebne do sprawdzenia
+                                    dostępności.
+
+
+  Rezerwacje i decyzje             Obsługuje tworzenie, edycję i anulowanie rezerwacji oraz zatwierdzanie i
+                                   odrzucanie. Współpracuje z bazą przy kontroli kolizji.
+
+
+  Wydania i zwroty               Sprawdza zatwierdzenie rezerwacji, egzemplarz i stan wypożyczenia. Zapisuje
+                                 wydanie, zwrot, dane osób obsługujących i uwagi.
+
+
+  Historia operacji                   Rejestruje wykonawcę, czas i obiekt zmiany. Udostępnia historię zgodnie z
+                                 uprawnieniami użytkownika.
+
+
+  Django ORM                   Mapuje modele aplikacji na tabele i pośredniczy w odczytach i zapisach.
+                                 Operacje zmieniające stan będą wykonywane w transakcjach.
+
+
+  PostgreSQL                     Przechowuje konta, zasoby, rezerwacje, wypożyczenia i historię. Docelowo
+                            wymusza klucze i ograniczenia integralności.
+
+
+Przypadki użycia na rys. 1 opisują funkcje z perspektywy aktorów. Model logiczny na rys. 3 pokazuje
+dane obsługiwane przez moduły. Oba diagramy uzupełniają opis komponentów.
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                       10
+=== STRONA 11 ===
+5.2. Technologie
+
+
+
+ Warstwa                        Technologia lub decyzja
+
+
+  Backend                             Python, Django, Django REST Framework
+
+
+  Baza danych                        PostgreSQL
+
+
+  Środowisko serwerowe               Docker Compose
+
+
+  Klient webowy                       Szablony Django, HTML, CSS i JavaScript
+
+
+  Klient desktopowy                   Python i PyQt
+
+
+  Dokumentacja API                  OpenAPI
+
+
+  Kontrola wersji                          Git
+
+
+Django i DRF umożliwią udostępnienie wspólnego API obu klientom, a PostgreSQL zapewni relacyjny
+model i docelowy mechanizm ochrony przed kolizjami terminów. Docker Compose ma zapewnić
+powtarzalne uruchamianie środowiska. Szablony Django pozwolą przygotować formularze webowe w
+tym samym projekcie. PyQt umożliwi zbudowanie klienta desktopowego w Pythonie, co ograniczy liczbę
+języków w projekcie. Wybór technologii webowej wymaga potwierdzenia z prowadzącym ze względu na
+technologie wymienione w wymaganiach zajęć.
+
+5.3. Instalacja i konfiguracja
+
+Prace obejmą przygotowanie repozytorium, konfiguracji środowiskowej, kontenerów, migracji i danych
+demonstracyjnych. README będzie zawierać wymagania, komendy uruchomienia, sposób utworzenia
+administratora, wykonania testów i uruchomienia klienta desktopowego. Sekrety nie będą
+przechowywane w repozytorium.
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                       11
+=== STRONA 12 ===
+5.4. Metodyka i podział pracy
+
+
+Prace są prowadzone przyrostowo. Po logowaniu, katalogu i rezerwacjach kolejne etapy obejmują decyzje
+administratora, wydania, zwroty i integrację klientów. Każdy etap jest sprawdzany na danych
+demonstracyjnych.
+
+
+Poniższy podział oddziela prace wykonane od dalszych obowiązków. Szczegółowe zadania i ich status będą
+prowadzone w oddzielnym pliku w repozytorium.
+
+
+
+ Osoba               Stan           Zakres prac
+
+
+
+  Cały zespół           Wykonane       Wspólne opracowanie konspektu, wymagań i ogólnej koncepcji
+                                         systemu.
+
+
+
+  Marcin Pupek         Wykonane       Diagramy i model danych, Docker, PostgreSQL i Django.
+                                          Logowanie, katalog, rezerwacje, lista własnych zgłoszeń i ochrona
+                                          przed kolizjami. Wykonane testy, aktualizacja dokumentacji i
+                                 README oraz zapis zmian w repozytorium.
+
+
+
+  Paula Brajczewska     Do wykonania    Rozbudowa aplikacji webowej: wygląd, nawigacja, decyzje
+                                              administratora, statusy i obsługa błędów zapisu.
+
+
+
+  Mateusz Perkowski     Do wykonania     Logika wydawania i zwracania sprzętu, dane obsługi i uwagi o
+                                              stanie sprzętu oraz historia operacji.
+
+
+
+  Mateusz Drewnowski   Do wykonania    Wspólne API, uwierzytelnianie i kontrola dostępu oraz
+                                           udostępnienie operacji systemu klientom.
+
+
+
+  Mikołaj Malinowski     Do wykonania     Aplikacja desktopowa PyQt: logowanie, zatwierdzone rezerwacje,
+                                          wydania, zwroty i historia przez API.
+
+
+
+Każda osoba odpowiada za testy i opis dokumentacyjny swojej części. Końcowe sprawdzenie całego systemu
+oraz przygotowanie prezentacji są zadaniami wspólnymi.
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                              12
+=== STRONA 13 ===
+5.5. Harmonogram realizacji
+
+
+Daty odpowiadają harmonogramowi zajęć. Zakres prac między pokazami stanowi plan zespołu.
+
+
+ Termin           Etap                  Zakres lub rezultat
+
+
+  07.10.2026         Wstęp                  Omówienie zasad zajęć i zakresu projektu.
+
+
+  14.10.2026          Repozytorium i temat      Ustalenie tematu UniBook i organizacji repozytorium.
+
+
+  21.10.2026          Konspekt                 Opis biznesowy, cel, przegląd rozwiązań, wymagania oraz
+                                             FURPS, MoSCoW i SWOT.
+
+
+  28.10.2026          Warsztaty                 Testy jednostkowe. Przygotowanie do weryfikacji reguł
+                                                            aplikacji.
+
+
+  04.11.2026           Analiza inżynierska        Diagramy, opis modułów, technologie, metodyka, podział prac
+                                                                                               i harmonogram.
+
+
+  18.11.2026          Praca własna              Środowisko, migracje, dane demonstracyjne, konta i katalog.
+
+
+  25.11.2026         Pokaz postępów          Pokaz rezerwacji od katalogu do zapisu w bazie i odrzucenia
+                                                  kolidującego terminu.
+
+
+  02.12.2026          Praca własna               Integracja decyzji administratora, wydań, zwrotów i historii z
+                                                     klientami.
+
+
+  09.12.2026         Pokaz postępów          Pokaz rezerwacji w webie, zatwierdzenia oraz wydania i zwrotu
+                                w desktopie.
+
+
+  16.12.2026          Praca własna             Dokończenie zakresu obowiązkowego i poprawki po integracji.
+
+
+  13.01.2027         Dokumentacja             Opis implementacji, instrukcje uruchomienia i obsługi oraz
+                                                  wyniki testów.
+
+
+  20.01.2027          Praca własna             Uruchomienie w czystym środowisku, próba prezentacji i
+                                                 poprawki.
+
+
+  27.01.2027         Oddanie i obrona         Gotowy system, prezentacja, obrona i dokumentacja
+                                                   techniczna.
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                       13
+=== STRONA 14 ===
+6. Komunikacja między podsystemami
+
+
+Komunikacja klientów z API będzie odbywać się przez HTTP z wykorzystaniem JSON. Oznaczenie HTTPS /
+JSON na rys. 2 dotyczy środowiska wdrożeniowego; w lokalnym środowisku deweloperskim dopuszcza
+się HTTP.
+
+W ramach projektowania API należy ustalić: mechanizm uwierzytelniania i wylogowania obu klientów;
+strukturę żądań i odpowiedzi; format błędów; paginację i filtrowanie; sposób przekazywania dat z
+informacją o strefie; nazwy statusów i dozwolone operacje.
+
+Odpowiedź API musi jednoznacznie potwierdzać zapis albo wskazywać błąd, w tym kolizję terminu i brak
+uprawnień. Nieudana operacja nie może pozostawiać częściowo zapisanych danych. Szczegółowy
+kontrakt żądań i odpowiedzi zostanie opisany w OpenAPI.
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                       14
+=== STRONA 15 ===
+7. Projekt struktury bazy danych
+
+7.1. Główne encje
+
+
+  Encja                    Dane i odpowiedzialność
+
+
+  Użytkownik                  Dane konta, skrót hasła, e-mail, rola i aktywność.
+
+
+  Zasób                        Wspólne dane sal i sprzętu: nazwa, typ, lokalizacja, opis i aktywność.
+
+
+  Sala                         Numer, pojemność i wyposażenie; powiązanie z zasobem.
+
+
+  Egzemplarz sprzętu              Unikalny numer inwentarzowy, model i stan techniczny; konkretny egzemplarz
+                                  zasobu.
+
+
+  Rezerwacja                        Autor, zasób, przedział czasu, cel, status i decyzja administratora.
+
+
+  Wypożyczenie                   Rezerwacja, osoby obsługujące, moment wydania i zwrotu oraz uwagi.
+
+
+  Zdarzenie historii                Rodzaj operacji, wykonawca, czas, opis i obiekty objęte zmianą.
+
+
+
+7.2. Integralność i kolizje
+
+Wdrożono ograniczenie wykluczające PostgreSQL dla zasobu i przedziału czasu. Chroni ono rezerwacje
+oczekujące i zatwierdzone przed kolizjami również podczas równoczesnych zapisów. Zastosowano
+przedziały [początek, koniec), co pozwala na rezerwacje następujące bezpośrednio po sobie.
+
+
+
+
+
+Dodatkowe zabezpieczenia obejmą unikalność numerów inwentarzowych i e-maili, poprawność
+kolejności dat oraz ochronę przed wielokrotnym otwartym wypożyczeniem egzemplarza. Rezerwacja
+sali nie może stanowić podstawy wydania sprzętu.
+
+7.3. Model logiczny
+
+Model na rys. 3 opracowano w Oracle SQL Developer Data Modeler. Obejmuje siedem encji i trzynaście
+relacji. Narzędzie służy do modelowania; docelową bazą aplikacji pozostaje PostgreSQL. Powiązania z
+innymi encjami są przedstawione relacjami, dlatego część atrybutów pochodzących z kluczy obcych
+może być ukryta na diagramie logicznym.
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                       15
+=== STRONA 16 ===
+7.3. Model logiczny bazy danych
+
+
+
+
+
+                                                                                                   WYPOZYCZENIE
+                                                                                                                  P  * id
+                                                                                                                                  * data wydania
+                                                                                                                                  o data zwrotu
+                                                                                                                                  o uwagi wydania                    ZDARZENIE HISTORII
+                                                                                                                                  o uwagi zwrotu
+           P  * id
+               * rodzaj operacji
+               * czas
+               * opis
+
+                                                                                                                                      REZERWACJA
+                                                                                                                                                               P  * id
+                                                                                                                                                                                   * poczatek
+                                                                                                                                                                                   * koniec
+                                                                                                                                                                                   * cel
+                                                                                                                                                                                   * status
+                                                                                                                                                                                   o data decyzji
+                                                                                                                                                                                   o uzasadnienie odrzucenia
+                                                                                                                                                                                   * utworzono
+
+
+          UZYTKOWNIK
+  P  * id
+ U * email
+     * skrot hasla
+                                                                                                                                                          SALA     * imie
+     * nazwisko                                                                                                                                                                                    * numer
+     * rola                                                                                                                                                                                         * pojemnosc
+     * aktywny                                                                                                                                                                                     o wyposazenie                                                                                          ZASOB
+                                                                                                 P  * id
+                                                                                                              * nazwa
+                                                                                                              * typ
+                                                                                                              * lokalizacja
+                                                                                                              o opis
+                                                                                                              * aktywny
+                       EGZEMPLARZ SPRZETU
+                U * numer inwentarzowy
+                           * model
+                           * stan techniczny
+
+
+
+
+
+Rys. 3. Model logiczny bazy danych systemu UniBook. Źródło: opracowanie własne zespołu w Oracle SQL Developer Data Modeler.
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                                                                                                                                                   16
+=== STRONA 17 ===
+7.4. Relacje i interpretacja modelu
+
+
+
+  Powiązanie                       Interpretacja
+
+
+  Użytkownik - Rezerwacja            Każda rezerwacja ma jednego autora. Użytkownik może złożyć wiele
+                                        rezerwacji lub nie mieć żadnej. Drugie powiązanie wskazuje opcjonalnego
+                                     decydenta.
+
+
+  Zasób - Rezerwacja                Każda rezerwacja dotyczy jednego zasobu. Zasób może mieć wiele
+                                        rezerwacji w różnych terminach.
+
+
+  Rezerwacja - Wypożyczenie          Rezerwacja może mieć najwyżej jedno wypożyczenie. Każde wypożyczenie
+                                  musi mieć jedną rezerwację.
+
+
+  Użytkownik - Wypożyczenie         Osoba wydająca jest obowiązkowa; osoba przyjmująca zwrot pojawia się
+                                 po zwrocie. Każda z tych osób może obsłużyć wiele wypożyczeń.
+
+
+  Zasób - Sala / Sprzęt               Każda sala i egzemplarz sprzętu wskazują jeden zasób. Zasób musi mieć
+                                      dokładnie jeden rodzaj szczegółów, zgodny z jego typem.
+
+
+  Zdarzenie historii - pozostałe encje    Zdarzenie może wskazywać rezerwację, zasób, konto lub wypożyczenie, a
+                                      także wykonawcę. Co najmniej jeden obiekt objęty zmianą musi być
+                                   wskazany.
+
+
+
+Oznaczenia i reguły przekrojowe
+
+Na dostarczonym diagramie P oznacza identyfikator główny, U - identyfikator unikalny, gwiazdka -
+atrybut wymagany, a o - opcjonalny. Sala oraz Egzemplarz sprzętu korzystają z identyfikacji przez
+powiązany Zasób. Obecny diagram przedstawia je jako odrębne encje połączone relacjami; nie zawiera
+jawnej hierarchii podtypów.
+
+Rozłączność i kompletność kategorii Sala/Sprzęt wymaga dodatkowego wymuszenia. Podobnie
+unikalność rezerwacji w tabeli Wypożyczenie ogranicza liczbę wypożyczeń jednej rezerwacji, lecz sama
+nie zapewnia najwyżej jednego otwartego wypożyczenia danego egzemplarza przy różnych
+rezerwacjach.
+
+7.5. Weryfikacja modelu
+
+Sprawdzenie Design Rules dostarczonego modelu wykazało 0 błędów i 7 ostrzeżeń dotyczących
+nazewnictwa identyfikatorów głównych. Dodatkowa kontrola statyczna zapisanych plików projektu
+zakończyła 76 kontroli bez wykrytych błędów strukturalnych. Obejmowała encje, atrybuty,
+opcjonalność, identyfikatory, wybrane ograniczenia unikalności, relacje i 11 ograniczeń CHECK.
+
+Kontrolę modelu uzupełniono o testy działającej aplikacji. Wyniki rezerwacji i testu dwóch
+równoczesnych transakcji opisano w rozdziale 12. Kolejne testy obejmą wydania, zwroty i pełną kontrolę
+ról.
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                       17
+=== STRONA 18 ===
+8. Projekt interfejsu użytkownika
+
+
+Aplikacja webowa będzie służyć przede wszystkim studentom i pracownikom. Obejmie logowanie,
+katalog zasobów, szczegóły zasobu, wybór terminu, formularz rezerwacji oraz widok „Moje rezerwacje”.
+Funkcje te odpowiadają przede wszystkim UC02-UC09 z diagramu przypadków użycia.
+
+Aplikacja desktopowa będzie przeznaczona głównie dla obsługi. Obejmie listę zatwierdzonych
+rezerwacji sprzętu, wyszukiwanie egzemplarza, rejestrację wydania, zwrotu i podgląd historii
+(UC15-UC18). Obie aplikacje korzystają ze wspólnego API przedstawionego na diagramie komponentów.
+
+Administrator otrzyma narzędzia do zarządzania kontami, zasobami i decyzjami rezerwacyjnymi
+(UC10-UC14). Dokładny podział ekranów administracyjnych między interfejsami należy ustalić podczas
+projektowania.
+
+Projekt interfejsów uwzględni:
+
+• spójne nazwy statusów;
+• wyraźne komunikaty o braku dostępności;
+• potwierdzanie istotnych operacji;
+• oznaczenie używanej strefy czasowej;
+• obsługę klawiatury i czytelne etykiety formularzy;
+• komunikaty o utracie połączenia bez sugerowania, że niezapisana operacja zakończyła się sukcesem.
+
+Powiązanie interfejsu z modelem danych
+
+Formularz rezerwacji zapisuje dane encji Rezerwacja i wskazuje wybrany Zasób. Ekran obsługi pokazuje
+rezerwację wraz z danymi Egzemplarza sprzętu; wydanie i zwrot zmieniają dane Wypożyczenia. Historia
+prezentuje zdarzenia odpowiednie do uprawnień użytkownika. Ukrycie przycisku w interfejsie nie
+zastępuje sprawdzenia uprawnień przez backend.
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                       18
+=== STRONA 19 ===
+ 9. Algorytmy działania aplikacji
+
+  9.1. Utworzenie rezerwacji
+
+  1. Użytkownik wybiera zasób i termin.
+
+  2. Backend sprawdza konto, uprawnienia, aktywność zasobu i poprawność danych.
+
+  3. Następuje próba zapisania rezerwacji oczekującej w transakcji.
+
+  4. Baza weryfikuje brak kolizji.
+
+  5. System zwraca potwierdzenie albo komunikat o zajętym terminie.
+
+  Wcześniejsze wyświetlenie wolnego terminu nie gwarantuje jego dostępności w chwili zapisu.
+  Rozstrzygająca jest operacja w bazie.
+
+  9.2. Zatwierdzenie i odrzucenie
+
+  Administrator rozpatruje rezerwację oczekującą. Backend sprawdza aktualny status, zapisuje decyzję i
+  autora zmiany. Odrzucenie wymaga uzasadnienia oraz zwalnia termin.
+
+  9.3. Wydanie i zwrot
+
+  Przy wydaniu system sprawdza zatwierdzenie rezerwacji, właściwy egzemplarz, termin odbioru i brak
+  otwartego wypożyczenia. Zapisuje czas, osobę wydającą i uwagi.
+
+  Przy zwrocie zapisuje czas, osobę przyjmującą oraz stan sprzętu. Ponowna próba zwrotu tego samego
+  wypożyczenia nie może utworzyć drugiego zdarzenia zwrotu.
+
+  Stan wypożyczenia będzie oddzielony od statusu rezerwacji: upływ zaplanowanego terminu nie oznacza
+  fizycznego zwrotu sprzętu.
+
+
+ 10. Implementacja i testowanie
+
+  Implementacja będzie prowadzona przyrostowo: środowisko i baza, konta i role, zasoby, rezerwacje,
+  decyzje administratora, wydania i zwroty, następnie integracja klientów.
+
+  Kluczowe scenariusze testowe:
+
+
+   Scenariusz           Oczekiwany wynik
+
+
+   Dwie jednoczesne       Zapis jednej, kontrolowane odrzucenie drugiej
+    rezerwacje tego
+   samego zasobu na ten
+   sam termin
+
+
+   Dwa różne zasoby w     Zapis obu
+   tym samym terminie
+
+
+    Sąsiadujące            Brak kolizji
+    przedziały czasu
+
+
+    Edycja powodująca      Odrzucenie zmiany i zachowanie wcześniejszych danych
+     kolizję
+
+
+    Dostęp studenta do    Odmowa
+    cudzej rezerwacji
+
+
+    Próba samodzielnego   Odmowa
+    podniesienia roli
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                       19
+=== STRONA 20 ===
+   Scenariusz           Oczekiwany wynik
+
+
+   Wydanie bez         Odmowa
+    zatwierdzenia
+
+
+   Dwa równoczesne       Najwyżej jedno otwarte wypożyczenie
+    wydania tego samego
+    egzemplarza
+
+
+    Zwrot po terminie        Zapis rzeczywistego czasu zwrotu
+
+
+   Zmiana czasu letniego   Jednoznaczna interpretacja terminu albo czytelny błąd
+        i zimowego
+
+
+    Rezerwacja z aplikacji    Widoczna w aplikacji desktopowej zgodnie z uprawnieniami
+   webowej
+
+
+  Test równoczesnych rezerwacji wykonano na PostgreSQL. Pozostałe scenariusze będą
+  sprawdzane wraz z rozwojem aplikacji.
+
+
+ 11. Źródła
+
+  Data dostępu do źródeł: 27.10.2026.
+
+  1. Booked Scheduler - Features
+
+  2. Booked Scheduler - Pricing
+
+  3. Skedda - Booking Requests & Approvals
+
+  4. Microsoft Learn - Create Room and Equipment Mailboxes
+
+  5. Calendly - Scheduling Software for Companies
+
+  6. Microsoft Learn - Microsoft Bookings Overview
+
+  7. PostgreSQL - Range Types, dokumentacja wersji 10, przykład ograniczenia wykluczającego
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                      20
+=== STRONA 21 ===
+12. Stan realizacji na 22 listopada 2026
+
+
+Do 22 listopada wykonano formularz rezerwacji, zapis w PostgreSQL i stronę Moje rezerwacje.
+Zgłoszeniu przypisywany jest zalogowany użytkownik oraz status Oczekująca. Sprawdzono kolizje,
+sąsiadujące terminy i rezerwacje różnych zasobów.
+
+Zastosowano model Rezerwacja, formularz RezerwacjaForm, widok zapisu w transakcji oraz listę
+filtrowaną według zalogowanego użytkownika. Migracja włącza btree_gist i tworzy ograniczenie
+wykluczające dla statusów blokujących termin.
+
+
+
+ Sprawdzenie                 Wynik
+
+
+ Zapis rezerwacji                Rezerwacja pojawiła się na liście własnych zgłoszeń ze statusem Oczekująca.
+
+
+ Nakładający się termin          Formularz odrzucił konflikt dla tego samego zasobu i pokazał komunikat.
+
+
+ Sąsiadujące przedziały          Zapisano rezerwacje kończące i rozpoczynające się o tej samej godzinie.
+
+
+ Różne zasoby                  Zapisano rezerwacje sali i projektora w tym samym terminie.
+
+
+ Równoczesne zapisy            Zapisano jedną rezerwację. Drugi zapis odrzuciło ograniczenie
+                                    rezerwacja_bez_kolizji.
+
+
+Test współbieżności wykonano w Django shell przy użyciu dwóch wątków, osobnych połączeń i
+transakcji oraz bariery startowej. Obie próby dotyczyły tego samego zasobu i terminu. Jedna
+zakończyła się zapisem, druga błędem ograniczenia rezerwacja_bez_kolizji. Wynik wyniósł TEST OK.
+Dane techniczne usunięto.
+
+Obecny web działa przez widoki i formularze Django. Docelowe wspólne REST API i klient PyQt zostaną
+przygotowane do dalszej integracji.
+
+Zakres pokazu na 25 listopada jest wykonany i gotowy do prezentacji. Następne etapy obejmują
+decyzje administratora, wydania, zwroty i historię. Pełny scenariusz między webem a desktopem
+zaplanowano na 9 grudnia.
+
+
+
+
+
+UniBook | Konspekt projektu | 2026/27                                                                      21
